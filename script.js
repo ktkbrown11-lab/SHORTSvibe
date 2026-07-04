@@ -37,10 +37,10 @@ const products = {
     price: "2 150 ₽",
     oldPrice: "3 700 ₽",
     availableSizes: ["XL"],
-    image: "black-bronze-front.jpg",
+    image: "shorts-03-front-v2.jpg",
     gallery: [
-      { src: "black-bronze-front.jpg", label: "Вид спереди" },
-      { src: "black-bronze-back.jpg", label: "Вид сзади" },
+      { src: "shorts-03-front-v2.jpg", label: "Вид спереди" },
+      { src: "shorts-03-back-v2.jpg", label: "Вид сзади" },
       { src: "shorts-03-detail.jpg", label: "Детальная фотография" },
       { src: "shorts-03-model-01.jpg", label: "На модели 01" },
       { src: "shorts-03-model-02.jpg", label: "На модели 02" }
@@ -121,9 +121,9 @@ const products = {
     gallery: [
       { src: "shorts-08-front.jpg", label: "Вид спереди" },
       { src: "shorts-08-back.jpg", label: "Вид сзади" },
-      { src: "shorts-08-detail.jpg", label: "Детальная фотография" },
-      { src: "shorts-08-model-01.jpg", label: "На модели 01" },
-      { src: "shorts-08-model-02.jpg", label: "На модели 02" }
+      { src: "shorts-08-detail-v2.jpg", label: "Детальная фотография" },
+      { src: "shorts-08-model-01-v2.jpg", label: "На модели 01" },
+      { src: "shorts-08-model-02-v2.jpg", label: "На модели 02" }
     ],
     description: "Черные шорты с яркими бирюзовыми и желтыми цветами. Летняя расцветка, которая добавляет акцент к базовому образу."
   },
@@ -169,9 +169,9 @@ const products = {
     gallery: [
       { src: "shorts-11-front.jpg", label: "Вид спереди" },
       { src: "shorts-11-back.jpg", label: "Вид сзади" },
-      { src: "shorts-11-detail.jpg", label: "Детальная фотография" },
-      { src: "shorts-11-model-01.jpg", label: "На модели 01" },
-      { src: "shorts-11-model-02.jpg", label: "На модели 02" }
+      { src: "shorts-11-detail-v2.jpg", label: "Детальная фотография" },
+      { src: "shorts-11-model-01-v2.jpg", label: "На модели 01" },
+      { src: "shorts-11-model-02-v2.jpg", label: "На модели 02" }
     ],
     description: "Темные шорты с горчичными цветами, голубыми листьями и белым шнурком. Теплая акцентная расцветка для летнего образа."
   }
