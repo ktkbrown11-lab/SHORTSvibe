@@ -177,8 +177,18 @@ const products = {
   }
 };
 
+const STOCK_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRoonoC2DeD1P1IzK2fS2TrgO6NbtqrMynbAgn8oK24M2lxwIWXaXjogIExRHmQeC4aNlebXto8tKGq/pub?output=csv";
+const SIZES = ["S", "M", "L", "XL"];
+const fallbackStock = Object.fromEntries(
+  Object.entries(products).map(([productKey, product]) => [
+    productKey,
+    Object.fromEntries(SIZES.map((size) => [size, product.availableSizes.includes(size) ? 1 : 0]))
+  ])
+);
+
 let selectedProductKey = "chocoLogo";
 let selectedSize = "";
+let stockByProduct = structuredClone(fallbackStock);
 
 const sizeButtons = document.querySelectorAll(".size-button");
 const productButtons = document.querySelectorAll("[data-product]");
@@ -248,15 +258,99 @@ function resetSize() {
   sizeStatus.classList.remove("error");
 }
 
-function updateSizeAvailability() {
-  const product = getSelectedProduct();
+function getStock(productKey, size) {
+  return Number(stockByProduct[productKey]?.[size] || 0);
+}
 
+function parseCsvLine(line) {
+  const result = [];
+  let value = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && nextChar === '"') {
+      value += '"';
+      index += 1;
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === "," && !insideQuotes) {
+      result.push(value.trim());
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+
+  result.push(value.trim());
+  return result;
+}
+
+function normalizeStockRows(csvText) {
+  const rows = csvText
+    .trim()
+    .split(/\r?\n/)
+    .map(parseCsvLine)
+    .filter((row) => row.length >= 3);
+
+  if (rows.length <= 1) {
+    return fallbackStock;
+  }
+
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const productIndex = headers.indexOf("product");
+  const sizeIndex = headers.indexOf("size");
+  const qtyIndex = headers.indexOf("qty");
+
+  if (productIndex === -1 || sizeIndex === -1 || qtyIndex === -1) {
+    return fallbackStock;
+  }
+
+  const nextStock = structuredClone(fallbackStock);
+
+  rows.slice(1).forEach((row) => {
+    const productKey = row[productIndex]?.trim();
+    const size = row[sizeIndex]?.trim().toUpperCase();
+    const qty = Number.parseInt(row[qtyIndex], 10);
+
+    if (products[productKey] && SIZES.includes(size) && Number.isFinite(qty)) {
+      nextStock[productKey][size] = Math.max(qty, 0);
+    }
+  });
+
+  return nextStock;
+}
+
+async function loadStockFromSheet() {
+  if (!STOCK_CSV_URL) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${STOCK_CSV_URL}${STOCK_CSV_URL.includes("?") ? "&" : "?"}t=${Date.now()}`);
+
+    if (!response.ok) {
+      throw new Error("Stock sheet request failed");
+    }
+
+    stockByProduct = normalizeStockRows(await response.text());
+  } catch (error) {
+    stockByProduct = structuredClone(fallbackStock);
+  }
+}
+
+function updateSizeAvailability() {
   sizeButtons.forEach((button) => {
-    const isAvailable = product.availableSizes.includes(button.dataset.size);
+    const size = button.dataset.size;
+    const stock = getStock(selectedProductKey, size);
+    const isAvailable = stock > 0;
+
     button.disabled = !isAvailable;
     button.classList.toggle("unavailable", !isAvailable);
     button.title = isAvailable ? "" : "Нет в наличии";
-    button.dataset.status = isAvailable ? "" : "НЕТ В НАЛИЧИИ";
+    button.dataset.status = isAvailable ? `${stock} шт` : "НЕТ";
   });
 }
 
@@ -332,7 +426,7 @@ function selectSize(button) {
 
   button.classList.add("selected");
   button.setAttribute("aria-pressed", "true");
-  sizeStatus.textContent = `Выбран размер: ${selectedSize}`;
+  sizeStatus.textContent = `Выбран размер: ${selectedSize}. Остаток: ${getStock(selectedProductKey, selectedSize)} шт`;
   sizeStatus.classList.remove("error");
   syncHiddenFields();
 }
@@ -393,6 +487,17 @@ orderForm.addEventListener("submit", async (event) => {
     sizeStatus.textContent = "Выберите размер";
     sizeStatus.classList.add("error");
     setStatus("Выберите размер", "error");
+    document.querySelector("#sizes").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  if (getStock(selectedProductKey, selectedSize) <= 0) {
+    selectedSize = "";
+    updateSizeAvailability();
+    syncHiddenFields();
+    sizeStatus.textContent = "Этот размер уже закончился, выберите другой";
+    sizeStatus.classList.add("error");
+    setStatus("Этот размер уже закончился, выберите другой", "error");
     document.querySelector("#sizes").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
@@ -464,4 +569,6 @@ orderForm.addEventListener("submit", async (event) => {
   }
 });
 
-selectProduct(selectedProductKey);
+loadStockFromSheet().finally(() => {
+  selectProduct(selectedProductKey);
+});
